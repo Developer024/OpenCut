@@ -1,0 +1,142 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build even if no changes'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: docker-build
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository with submodules
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 2: Update submodule to latest
+      - name: Update submodule to latest
+        run: |
+          git submodule update --remote --merge opencut
+
+          # Check if there are changes
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Submodule has updates"
+            echo "submodule_updated=true" >> $GITHUB_ENV
+
+            # Configure git
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+
+            # Commit and push submodule update
+            git add opencut
+            git commit -m "Update OpenCut submodule to latest version"
+            git push
+          else
+            echo "Submodule is up to date"
+            echo "submodule_updated=false" >> $GITHUB_ENV
+          fi
+
+      # Step 3: Check for changes
+      - name: Check for changes
+        id: check-changes
+        run: |
+          # Get the latest commit SHA
+          LATEST_SHA=$(git rev-parse HEAD)
+          echo "latest_sha=${LATEST_SHA}" >> $GITHUB_OUTPUT
+
+          # Check if we should build
+          if [ "${{ github.event.inputs.force_build }}" = "true" ]; then
+            echo "Force build requested"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif [ "${{ env.submodule_updated }}" = "true" ]; then
+            echo "Submodule was updated"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "Push to main branch detected"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "No build needed"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Step 4: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        if: steps.check-changes.outputs.should_build == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      # Step 5: Login to DockerHub
+      - name: Login to DockerHub
+        if: steps.check-changes.outputs.should_build == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Step 6: Generate metadata
+      - name: Generate Docker metadata
+        if: steps.check-changes.outputs.should_build == 'true'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/opencut
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=main-
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}}
+
+      # Step 7: Build and push Docker image
+      - name: Build and push Docker image
+        if: steps.check-changes.outputs.should_build == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            FREESOUND_CLIENT_ID=${{ secrets.FREESOUND_CLIENT_ID }}
+            FREESOUND_API_KEY=${{ secrets.FREESOUND_API_KEY }}
+            CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+            R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
+            R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
+            R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME }}
+            MODAL_TRANSCRIPTION_URL=${{ secrets.MODAL_TRANSCRIPTION_URL }}
+
+      # Step 8: Summary
+      - name: Build Summary
+        if: always()
+        run: |
+          if [ "${{ steps.check-changes.outputs.should_build }}" = "true" ]; then
+            echo "## ✅ Docker Image Built and Pushed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Details:" >> $GITHUB_STEP_SUMMARY
+            echo "- **Docker Image**: ${{ secrets.DOCKERHUB_USERNAME }}/opencut" >> $GITHUB_STEP_SUMMARY
+            echo "- **Tags**: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Commit SHA**: ${{ steps.check-changes.outputs.latest_sha }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Submodule Updated**: ${{ env.submodule_updated }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⏭️ Build Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "No changes detected or build not required." >> $GITHUB_STEP_SUMMARY
+          fi
