@@ -7,7 +7,7 @@ Automated Docker build for OpenCut application with submodule auto-update suppor
 - **Auto-update submodule**: Automatically updates OpenCut submodule to latest version
 - **Triggered on main branch push**: Builds only when pushing to main branch
 - **Manual trigger support**: Can be triggered manually with force build option
-- **Multi-platform builds**: Supports linux/amd64, linux/arm64, linux/arm/v7, linux/386
+- **Multi-platform builds**: Supports linux/amd64, linux/arm64
 - **Default environment variables**: Uses safe defaults, can be overridden at runtime
 
 ## Required GitHub Secrets
@@ -32,22 +32,57 @@ Configure these secrets in your GitHub repository (Settings > Secrets and variab
 
 ## Running the Container
 
+### Using Docker Compose (Recommended)
+
+1. Copy the environment file:
+```bash
+cp .env.example .env
+```
+
+2. Edit `.env` and set your values
+
+3. Start all services:
+```bash
+docker-compose up -d
+```
+
+This will start:
+- PostgreSQL database
+- Redis cache
+- Serverless Redis HTTP interface
+- OpenCut web application (on port 3100)
+
+### Using Docker Run
+
+Minimal setup (required variables only):
 ```bash
 docker run -d \
-  -e DATABASE_URL="your_database_url" \
+  -e DATABASE_URL="postgresql://opencut:opencutthegoat@localhost:5432/opencut" \
   -e BETTER_AUTH_SECRET="your_auth_secret" \
-  -e UPSTASH_REDIS_REST_URL="your_redis_url" \
-  -e UPSTASH_REDIS_REST_TOKEN="your_redis_token" \
-  -e NEXT_PUBLIC_BETTER_AUTH_URL="your_auth_url" \
+  -e UPSTASH_REDIS_REST_URL="http://localhost:8079" \
+  -e UPSTASH_REDIS_REST_TOKEN="example_token" \
+  -e NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000" \
+  -p 3000:3000 \
+  developer024/opencut:latest
+```
+
+Full setup with all optional features:
+```bash
+docker run -d \
+  -e DATABASE_URL="postgresql://opencut:opencutthegoat@localhost:5432/opencut" \
+  -e BETTER_AUTH_SECRET="your_auth_secret" \
+  -e UPSTASH_REDIS_REST_URL="http://localhost:8079" \
+  -e UPSTASH_REDIS_REST_TOKEN="example_token" \
+  -e NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000" \
   -e FREESOUND_CLIENT_ID="your_client_id" \
   -e FREESOUND_API_KEY="your_api_key" \
   -e CLOUDFLARE_ACCOUNT_ID="your_account_id" \
   -e R2_ACCESS_KEY_ID="your_r2_key" \
   -e R2_SECRET_ACCESS_KEY="your_r2_secret" \
-  -e R2_BUCKET_NAME="your_bucket" \
+  -e R2_BUCKET_NAME="opencut-transcription" \
   -e MODAL_TRANSCRIPTION_URL="your_modal_url" \
   -p 3000:3000 \
-  your-username/opencut:latest
+  developer024/opencut:latest
 ```
 
 ## Manual Trigger
