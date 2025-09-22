@@ -5,14 +5,9 @@ FROM base AS builder
 
 WORKDIR /app
 
-# Build-time arguments for all required environment variables
-ARG FREESOUND_CLIENT_ID
-ARG FREESOUND_API_KEY
-ARG CLOUDFLARE_ACCOUNT_ID
-ARG R2_ACCESS_KEY_ID
-ARG R2_SECRET_ACCESS_KEY
-ARG R2_BUCKET_NAME
-ARG MODAL_TRANSCRIPTION_URL
+# Build-time arguments are optional, will use defaults if not provided
+ARG FREESOUND_CLIENT_ID=""
+ARG FREESOUND_API_KEY=""
 
 # Copy package files from submodule
 COPY opencut/package.json package.json
@@ -41,18 +36,18 @@ ENV UPSTASH_REDIS_REST_URL="http://localhost:8079"
 ENV UPSTASH_REDIS_REST_TOKEN="example_token"
 ENV NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
 
-# Set Freesound API variables
-ENV FREESOUND_CLIENT_ID=$FREESOUND_CLIENT_ID
-ENV FREESOUND_API_KEY=$FREESOUND_API_KEY
+# Set Freesound API variables (optional, can be overridden at runtime)
+ENV FREESOUND_CLIENT_ID=${FREESOUND_CLIENT_ID:-"default_client_id"}
+ENV FREESOUND_API_KEY=${FREESOUND_API_KEY:-"default_api_key"}
 
-# Set Cloudflare R2 variables
-ENV CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID
-ENV R2_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID
-ENV R2_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY
-ENV R2_BUCKET_NAME=$R2_BUCKET_NAME
+# Set Cloudflare R2 variables with defaults for build
+ENV CLOUDFLARE_ACCOUNT_ID="default_account_id"
+ENV R2_ACCESS_KEY_ID="default_access_key"
+ENV R2_SECRET_ACCESS_KEY="default_secret_key"
+ENV R2_BUCKET_NAME="default_bucket"
 
-# Set Modal transcription URL
-ENV MODAL_TRANSCRIPTION_URL=$MODAL_TRANSCRIPTION_URL
+# Set Modal transcription URL with default
+ENV MODAL_TRANSCRIPTION_URL="http://localhost:8080/transcribe"
 
 WORKDIR /app/apps/web
 RUN bun run build

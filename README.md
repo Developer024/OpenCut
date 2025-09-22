@@ -7,8 +7,8 @@ Automated Docker build for OpenCut application with submodule auto-update suppor
 - **Auto-update submodule**: Automatically updates OpenCut submodule to latest version
 - **Triggered on main branch push**: Builds only when pushing to main branch
 - **Manual trigger support**: Can be triggered manually with force build option
-- **Multi-platform builds**: Supports linux/amd64 and linux/arm64
-- **Build-time environment variables**: All required variables are passed during build
+- **Multi-platform builds**: Supports linux/amd64, linux/arm64, linux/arm/v7, linux/386
+- **Default environment variables**: Uses safe defaults, can be overridden at runtime
 
 ## Required GitHub Secrets
 
@@ -17,19 +17,6 @@ Configure these secrets in your GitHub repository (Settings > Secrets and variab
 ### DockerHub
 - `DOCKERHUB_USERNAME`: Your DockerHub username
 - `DOCKERHUB_TOKEN`: Your DockerHub access token
-
-### Freesound API
-- `FREESOUND_CLIENT_ID`: Freesound API client ID
-- `FREESOUND_API_KEY`: Freesound API key
-
-### Cloudflare R2
-- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
-- `R2_ACCESS_KEY_ID`: R2 access key ID
-- `R2_SECRET_ACCESS_KEY`: R2 secret access key
-- `R2_BUCKET_NAME`: R2 bucket name
-
-### Modal
-- `MODAL_TRANSCRIPTION_URL`: Modal transcription service URL
 
 ## How it Works
 
@@ -42,7 +29,6 @@ Configure these secrets in your GitHub repository (Settings > Secrets and variab
 
 - `{username}/opencut:latest` - Always points to the latest build
 - `{username}/opencut:main-{sha}` - Git commit SHA tag
-- `{username}/opencut:{YYYYMMDD-HHmmss}` - Timestamp tag
 
 ## Running the Container
 
@@ -87,17 +73,15 @@ git commit -m "Update OpenCut submodule"
 git push
 ```
 
-## Workflow Files
+## Workflow File
 
 - `.github/workflows/docker-build.yml` - Main workflow with auto-update
-- `.github/workflows/opencut-docker-build.yml` - Original workflow (can be deleted)
-- `.github/workflows/opencut-docker-build-secure.yml` - Secure version (optional)
 
 ## Project Structure
 
 ```
 .
-├── Dockerfile                    # Custom Dockerfile with all build args
+├── Dockerfile                    # Custom Dockerfile with default values
 ├── opencut/                     # OpenCut submodule
 ├── .gitmodules                  # Submodule configuration
 ├── .github/
