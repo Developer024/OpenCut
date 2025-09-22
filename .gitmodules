@@ -1,0 +1,3 @@
+[submodule "opencut"]
+	path = opencut
+	url = https://github.com/OpenCut-app/OpenCut.git
