@@ -8,6 +8,8 @@ WORKDIR /app
 # Build-time arguments are optional, will use defaults if not provided
 ARG FREESOUND_CLIENT_ID=""
 ARG FREESOUND_API_KEY=""
+# Add build argument for client-side URL
+ARG NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
 
 # Copy package files from submodule
 COPY opencut/package.json package.json
@@ -34,7 +36,7 @@ ENV DATABASE_URL="postgresql://opencut:opencutthegoat@localhost:5432/opencut"
 ENV BETTER_AUTH_SECRET="build-time-secret"
 ENV UPSTASH_REDIS_REST_URL="http://localhost:8079"
 ENV UPSTASH_REDIS_REST_TOKEN="example_token"
-ENV NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
+ENV NEXT_PUBLIC_BETTER_AUTH_URL=${NEXT_PUBLIC_BETTER_AUTH_URL}
 
 # Set Freesound API variables (optional, can be overridden at runtime)
 ENV FREESOUND_CLIENT_ID=${FREESOUND_CLIENT_ID:-"default_client_id"}

@@ -47,10 +47,23 @@ services:
       retries: 5
       start_period: 10s
   web:
+    # Use pre-built image from Docker Hub
+    # Note: Default image has NEXT_PUBLIC_BETTER_AUTH_URL set to http://localhost:3000
     image: developer024/opencut:latest
+
+    # To build locally with custom URL (e.g., port 3100), uncomment below:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   args:
+    #     NEXT_PUBLIC_BETTER_AUTH_URL: http://localhost:3100
+    #     FREESOUND_CLIENT_ID: ${FREESOUND_CLIENT_ID}
+    #     FREESOUND_API_KEY: ${FREESOUND_API_KEY}
+
     restart: unless-stopped
     ports:
-      - "3100:3000" # app is running on 3000 so we run this at 3100
+      - "3000:3000" # Must use 3000 for pre-built image (NEXT_PUBLIC_BETTER_AUTH_URL is fixed to localhost:3000)
+      # - "3100:3000" # For port 3100, uncomment the build section above and rebuild
     environment:
       # Core Configuration (Required)
       - NODE_ENV=production
@@ -58,7 +71,7 @@ services:
 
       # Authentication (Required)
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-your-production-secret-key-here}
-      - NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3100
+      # Note: NEXT_PUBLIC_BETTER_AUTH_URL is set at build time (see build.args above)
 
       # Redis Configuration (Required)
       - UPSTASH_REDIS_REST_URL=http://serverless-redis-http:80
